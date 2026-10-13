@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Paint++.App/Paint++.App.csproj" />
+    <Project Path="src/Paint++.Core/Paint++.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Paint++.Core.Tests/Paint++.Core.Tests.csproj" />
+  </Folder>
+</Solution>
