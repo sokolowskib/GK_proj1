@@ -2,6 +2,8 @@
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
+using PaintPP.App;
+using PaintPP.App.Rendering;
 
 const int PanelWidth = 300;
 
@@ -9,12 +11,16 @@ Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.Msaa4xHint | Con
 Raylib.InitWindow(1280, 800, "Paint++");
 rlImGui.Setup(darkTheme: true);
 
+var scene = DemoScene.Create();
+
+var renderer = new SceneRenderer();
+
 while (!Raylib.WindowShouldClose())
 {
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Color.RayWhite);
 
-    Raylib.DrawLineV(new Vector2(100, 100), new Vector2(400, 250), Color.DarkBlue);
+    renderer.Draw(scene);
     Raylib.DrawCircleV(Raylib.GetMousePosition(), 5, Color.Red);
 
     rlImGui.Begin();
