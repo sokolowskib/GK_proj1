@@ -18,4 +18,8 @@
     <ProjectReference Include="..\Paint++.Core\Paint++.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Assets\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

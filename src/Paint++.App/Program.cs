@@ -1,26 +1,35 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
 using PaintPP.App;
 using PaintPP.App.Rendering;
 using PaintPP.App.Input;
+using PaintPP.Core.Editing;
+using PaintPP.App.UI;
 
 const int PanelWidth = 300;
 
 Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.Msaa4xHint | ConfigFlags.VSyncHint);
 Raylib.InitWindow(1280, 800, "Paint++");
-rlImGui.Setup(darkTheme: true);
+rlImGui.BeginInitImGui();
+ImGui.StyleColorsDark();
+LoadFont("JetBrainsMono-Regular.ttf", 16f);
+rlImGui.EndInitImGui();
 
 var scene = DemoScene.Create();
 
 var renderer = new SceneRenderer();
 IInteractionState state = new IdleState();
+var editor = new SceneEditor(scene);
+var contextMenu = new ContextMenu(editor);
 
 while (!Raylib.WindowShouldClose())
 {
     Vector2 mouse = Raylib.GetMousePosition();
-    if (!ImGui.GetIO().WantCaptureMouse)
+    bool mouseOnCanvas = !ImGui.GetIO().WantCaptureMouse;
+    if (mouseOnCanvas)
         state = state.Update(scene, mouse);
 
     Raylib.BeginDrawing();
@@ -30,6 +39,10 @@ while (!Raylib.WindowShouldClose())
     Raylib.DrawCircleV(Raylib.GetMousePosition(), 5, Color.Red);
 
     rlImGui.Begin();
+    if (mouseOnCanvas && Raylib.IsMouseButtonPressed(MouseButton.Right))
+        contextMenu.Open(scene, mouse);
+    contextMenu.Draw();
+
     DrawSidePanel();
     rlImGui.End();
 
@@ -53,4 +66,14 @@ static void DrawSidePanel()
     ImGui.Text($"Mysz: ({mouse.X:0}, {mouse.Y:0})");
 
     ImGui.End();
+}
+
+// Domyślna czcionka ImGui ma tylko ASCII — ładujemy TTF z zakresem obejmującym polskie litery (Latin Extended-A).
+static void LoadFont(string fileName, float size)
+{
+    ushort[] glyphRanges = [0x0020, 0x017F, 0];
+    // ImGui (C++) trzyma wskaźnik do tej tablicy, więc przypinamy ją na cały czas działania programu.
+    var handle = GCHandle.Alloc(glyphRanges, GCHandleType.Pinned);
+    string path = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", fileName);
+    ImGui.GetIO().Fonts.AddFontFromFileTTF(path, size, null, handle.AddrOfPinnedObject());
 }
