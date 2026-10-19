@@ -43,7 +43,7 @@ while (!Raylib.WindowShouldClose())
         contextMenu.Open(scene, mouse);
     contextMenu.Draw();
 
-    DrawSidePanel();
+    DrawSidePanel(renderer);
     rlImGui.End();
 
     Raylib.EndDrawing();
@@ -52,7 +52,7 @@ while (!Raylib.WindowShouldClose())
 rlImGui.Shutdown();
 Raylib.CloseWindow();
 
-static void DrawSidePanel()
+static void DrawSidePanel(SceneRenderer renderer)
 {
     int screenWidth = Raylib.GetScreenWidth();
     int screenHeight = Raylib.GetScreenHeight();
@@ -64,6 +64,14 @@ static void DrawSidePanel()
     Vector2 mouse = Raylib.GetMousePosition();
     ImGui.Text($"FPS: {Raylib.GetFPS()}");
     ImGui.Text($"Mysz: ({mouse.X:0}, {mouse.Y:0})");
+
+    ImGui.SeparatorText("Rysowanie odcinków");
+    bool isLibrary = renderer.Rasterizer is LibraryLineRasterizer;
+    if (ImGui.RadioButton("Biblioteczny", isLibrary))
+        renderer.Rasterizer = new LibraryLineRasterizer();
+    bool isBresenham = renderer.Rasterizer is BresenhamLineRasterizer;
+    if (ImGui.RadioButton("Bresenham", isBresenham))
+        renderer.Rasterizer = new BresenhamLineRasterizer();
 
     ImGui.End();
 }
