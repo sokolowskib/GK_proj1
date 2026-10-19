@@ -481,3 +481,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# ImGui window layout, regenerated at runtime
+imgui.ini
