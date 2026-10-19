@@ -4,6 +4,7 @@ using Raylib_cs;
 using rlImGui_cs;
 using PaintPP.App;
 using PaintPP.App.Rendering;
+using PaintPP.App.Input;
 
 const int PanelWidth = 300;
 
@@ -14,9 +15,14 @@ rlImGui.Setup(darkTheme: true);
 var scene = DemoScene.Create();
 
 var renderer = new SceneRenderer();
+IInteractionState state = new IdleState();
 
 while (!Raylib.WindowShouldClose())
 {
+    Vector2 mouse = Raylib.GetMousePosition();
+    if (!ImGui.GetIO().WantCaptureMouse)
+        state = state.Update(scene, mouse);
+
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Color.RayWhite);
 
