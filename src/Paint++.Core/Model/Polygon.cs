@@ -47,6 +47,13 @@ public class Polygon
         }
         return index;
     }
+    private int IndexOf(Edge edge)
+    {
+        int index = _edges.IndexOf(edge);
+        if (index < 0)
+            throw new ArgumentException("Nie ma takiej krawedzi w tym wielokacie", nameof(edge));
+        return index;
+    }
 
     private int Wrap(int index)
     {
@@ -56,5 +63,40 @@ public class Polygon
         if (index < 0)
             return index + count;
         return index;
+    }
+    ///< summary>
+    /// Metoda przyjmuje krawedz A-B, a nastepnie rodziela ja na dwie Krawedzie A-X-B, usuwajac stara krawedz z
+    /// wielokata, wstawiajac nowa w liste
+    /// Prawdziwy (i zachowany bedzie) niezmiennik: E[i] = V[i] -> V[i+1]
+    ///< summary>
+    public Vertex InsertVertex(Edge edge, Vector2 point)
+    {
+        Vertex a = edge.Start;
+        Vertex b = edge.End;
+        Vertex x = new Vertex(point);
+        int i = IndexOf(edge);
+        _vertices.Insert(i + 1, x);
+
+        Edge e1 = new Edge(a, x);
+        Edge e2 = new Edge(x, b);
+
+        _edges[i] = e1;
+        _edges.Insert(i + 1, e2);
+        return x;
+    }
+    public void RemoveVertex(Vertex vertex)
+    {
+        var e1 = IncomingEdge(vertex);
+        var e2 = OutgoingEdge(vertex);
+
+        int i = IndexOf(e1);
+
+        _vertices.Remove(vertex);
+
+        var v1 = e1.Start;
+        var v2 = e2.End;
+        var new_edge = new Edge(v1, v2);
+        _edges[i] = new_edge;
+        _edges.Remove(e2);
     }
 }
