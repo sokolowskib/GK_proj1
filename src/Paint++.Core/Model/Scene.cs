@@ -5,7 +5,7 @@ namespace PaintPP.Core.Model;
 public class Scene
 {
     public List<Polygon> Polygons { get; } = [];
-    public List<IConstraint> Constraints { get; set; } = [];
+    public List<IConstraint> Constraints { get; } = [];
 
     public PointHit? HitTestPoint(Vector2 pos, float radius)
     {
@@ -43,4 +43,5 @@ public class Scene
         }
         return best;
     }
+    public IEnumerable<ScenePoint> AllPoints => Polygons.SelectMany(p => p.AllPoints);
 }

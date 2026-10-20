@@ -5,8 +5,10 @@ namespace PaintPP.Core.Editing;
 
 public class SceneEditor(Scene scene)
 {
+    private readonly ConstraintSolver _solver = new();
     public Vertex InsertVertexAtEdgeMidpoint(Polygon polygon, Edge edge)
     {
+        RemoveConstraintsOf(edge);
         var mid = edge.Midpoint;
 
         return polygon.InsertVertex(edge, mid);
@@ -15,30 +17,81 @@ public class SceneEditor(Scene scene)
     {
         if (polygon.Vertices.Count <= 3)
             return false;
+        var e1 = polygon.IncomingEdge(vertex);
+        var e2 = polygon.OutgoingEdge(vertex);
+        RemoveConstraintsOf(e1);
+        RemoveConstraintsOf(e2);
         polygon.RemoveVertex(vertex);
         return true;
     }
 
     public void MovePoint(Polygon polygon, ScenePoint point, Vector2 target)
     {
-        Dictionary<ScenePoint, Vector2> snapshot = new();
-        foreach (var p in polygon.AllPoints)
-        {
-            snapshot.Add(p, p.Position);
-        }
+        var snapshot = TakeSnapshot();
 
         point.Position = target;
 
-        var solver = new ConstraintSolver();
         HashSet<ScenePoint> pinned = [point];
 
-        if (solver.Solve(scene.Constraints, pinned))  // solver sobie poradzil
+        if (_solver.Solve(scene.Constraints, pinned))  // solver sobie poradzil
             return;
-        foreach (var (p, pos) in snapshot)
+
+        RestoreSnapshot(snapshot);
+        Vector2 delta = target - snapshot[point];
+        polygon.Translate(delta);
+    }
+    private void RemoveConstraintsOf(Edge edge)
+    {
+        scene.Constraints.RemoveAll(c => c.Edges.Contains(edge));
+    }
+
+    public bool AddConstraint(IConstraint constraint)
+    {
+        var snapshot = TakeSnapshot();
+
+        scene.Constraints.Add(constraint);
+
+        if (_solver.Solve(scene.Constraints, new HashSet<ScenePoint>()))
+            return true;
+
+        RestoreSnapshot(snapshot);
+        scene.Constraints.Remove(constraint);
+        return false;
+    }
+    public void RemoveConstraint(IConstraint constraint)
+    {
+        scene.Constraints.Remove(constraint);
+    }
+    public bool SetLength(Edge edge, float length)
+    {
+        if (length <= 0)
+            return false;
+
+        var length_constraints = scene.Constraints.OfType<LengthConstraint>();
+        LengthConstraint? old = length_constraints.FirstOrDefault(p => p.Edges.Contains(edge));
+
+        if (old != null)
+            RemoveConstraint(old);
+
+        bool result = AddConstraint(new LengthConstraint(edge, length));
+
+        if (!result && old != null)
+        {
+            scene.Constraints.Add(old);
+        }
+        return result;
+    }
+
+    private Dictionary<ScenePoint, Vector2> TakeSnapshot() => scene.AllPoints.ToDictionary(p => p, p => p.Position);
+    private static void RestoreSnapshot(Dictionary<ScenePoint, Vector2> dict)
+    {
+        foreach (var (p, pos) in dict)
         {
             p.Position = pos;
         }
-        Vector2 delta = target - snapshot[point];
+    }
+    public void TranslatePolygon(Polygon polygon, Vector2 delta)
+    {
         polygon.Translate(delta);
     }
 }

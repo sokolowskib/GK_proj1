@@ -15,7 +15,7 @@ public class DraggingPolygonState(Polygon polygon, Vector2 startMouse) : IIntera
 
         var delta = mouse - _lastMouse;
 
-        polygon.Translate(delta);
+        editor.TranslatePolygon(polygon, delta);
         _lastMouse = mouse;
         return this;
     }
