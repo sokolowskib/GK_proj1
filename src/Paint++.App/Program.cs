@@ -30,7 +30,7 @@ while (!Raylib.WindowShouldClose())
     Vector2 mouse = Raylib.GetMousePosition();
     bool mouseOnCanvas = !ImGui.GetIO().WantCaptureMouse;
     if (mouseOnCanvas)
-        state = state.Update(scene, mouse);
+        state = state.Update(scene, mouse, editor);
 
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Color.RayWhite);

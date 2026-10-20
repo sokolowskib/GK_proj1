@@ -1,9 +1,11 @@
 using System.Numerics;
+using PaintPP.Core.Constraints;
 namespace PaintPP.Core.Model;
 
 public class Scene
 {
     public List<Polygon> Polygons { get; } = [];
+    public List<IConstraint> Constraints { get; set; } = [];
 
     public PointHit? HitTestPoint(Vector2 pos, float radius)
     {
