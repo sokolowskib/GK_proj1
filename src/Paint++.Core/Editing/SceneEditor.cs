@@ -25,7 +25,7 @@ public class SceneEditor(Scene scene)
         return true;
     }
 
-    public void MovePoint(Polygon polygon, ScenePoint point, Vector2 target)
+    public bool MovePoint(Polygon polygon, ScenePoint point, Vector2 target)
     {
         var snapshot = TakeSnapshot();
 
@@ -34,11 +34,12 @@ public class SceneEditor(Scene scene)
         HashSet<ScenePoint> pinned = [point];
 
         if (_solver.Solve(scene.Constraints, pinned))  // solver sobie poradzil
-            return;
+            return true;
 
         RestoreSnapshot(snapshot);
         Vector2 delta = target - snapshot[point];
         polygon.Translate(delta);
+        return false;
     }
     private void RemoveConstraintsOf(Edge edge)
     {
@@ -80,6 +81,14 @@ public class SceneEditor(Scene scene)
             scene.Constraints.Add(old);
         }
         return result;
+    }
+
+    public bool AddPerpendicular(Edge a, Edge b)
+    {
+        if (a == b)
+            return false;
+
+        return AddConstraint(new PerpendicularConstraint(a, b));
     }
 
     private Dictionary<ScenePoint, Vector2> TakeSnapshot() => scene.AllPoints.ToDictionary(p => p, p => p.Position);

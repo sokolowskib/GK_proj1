@@ -19,6 +19,8 @@ public static class DemoScene
         builder.Length(p2.Edges[0], 50);
         builder.Length(p3.Edges[0], 150);
 
+        builder.Perpendicular(p1.Edges[1], p3.Edges[0]);
+
         return builder.Build();
     }
 }

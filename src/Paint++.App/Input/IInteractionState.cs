@@ -5,5 +5,5 @@ using PaintPP.Core.Model;
 namespace PaintPP.App.Input;
 public interface IInteractionState
 {
-    IInteractionState Update(Scene scene, Vector2 mouse, SceneEditor editor);
+    IInteractionState Update(EditorContext ctx, Vector2 mouse);
 }

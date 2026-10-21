@@ -7,11 +7,14 @@ namespace PaintPP.App.Input;
 
 public class DraggingPointState(ScenePoint point, Polygon polygon) : IInteractionState
 {
-    public IInteractionState Update(Scene scene, Vector2 mouse, SceneEditor editor)
+    public IInteractionState Update(EditorContext ctx, Vector2 mouse)
     {
         if (Raylib.IsMouseButtonReleased(MouseButton.Left))
             return new IdleState();
-        editor.MovePoint(polygon, point, mouse);
+        if (!ctx.Editor.MovePoint(polygon, point, mouse))
+        {
+            ctx.Notification.Show("Ograniczenia sprzeczne - przesuwam wielokąt");
+        }
 
         return this;
     }

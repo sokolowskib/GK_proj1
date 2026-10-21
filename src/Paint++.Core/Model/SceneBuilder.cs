@@ -22,5 +22,11 @@ public class SceneBuilder
         _scene.Constraints.Add(constraint);
         return constraint;
     }
+    public PerpendicularConstraint Perpendicular(Edge a, Edge b)
+    {
+        var constraint = new PerpendicularConstraint(a, b);
+        _scene.Constraints.Add(constraint);
+        return constraint;
+    }
     public Scene Build() => _scene;
 }

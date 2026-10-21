@@ -8,19 +8,30 @@ namespace PaintPP.App.Input;
 public class IdleState : IInteractionState
 {
     private const float HitRadius = 8f;
-    public IInteractionState Update(Scene scene, Vector2 mouse, SceneEditor editor)
+    public IInteractionState Update(EditorContext ctx, Vector2 mouse)
     {
         if (!Raylib.IsMouseButtonPressed(MouseButton.Left))
             return this;
 
-        var pointHit = scene.HitTestPoint(mouse, HitRadius);
+        var pointHit = ctx.Scene.HitTestPoint(mouse, HitRadius);
         if (pointHit != null)
             return new DraggingPointState(pointHit.Point, pointHit.Polygon);
 
-        var edgeHit = scene.HitTestEdge(mouse, HitRadius);
+        var edgeHit = ctx.Scene.HitTestEdge(mouse, HitRadius);
         if (edgeHit != null)
+        {
+            if (Raylib.IsKeyDown(KeyboardKey.LeftSuper) || Raylib.IsKeyDown(KeyboardKey.RightSuper))
+            {
+                ctx.Selection.Toggle(edgeHit.Edge);
+            }
+            else
+            {
+                ctx.Selection.Select(edgeHit.Edge);
+            }
             return new DraggingPolygonState(edgeHit.Polygon, mouse);
+        }
 
+        ctx.Selection.Clear();
         return this;
     }
 }

@@ -2,10 +2,11 @@ using System.Numerics;
 using ImGuiNET;
 using PaintPP.Core.Model;
 using PaintPP.Core.Editing;
+using PaintPP.Core.Constraints;
 
 namespace PaintPP.App.UI;
 
-public class ContextMenu(SceneEditor editor)
+public class ContextMenu(EditorContext ctx)
 {
     private const float Tolerance = 8f;
     private const string VertexMenu = "vertex_menu";
@@ -45,7 +46,7 @@ public class ContextMenu(SceneEditor editor)
             {
                 bool canDelete = point.Polygon.Vertices.Count > 3;
                 if (ImGui.MenuItem("Usuń wierzchołek", null, false, canDelete))
-                    editor.DeleteVertex(point.Polygon, vertex);
+                    ctx.Editor.DeleteVertex(point.Polygon, vertex);
             }
             ImGui.EndPopup();
         }
@@ -55,13 +56,44 @@ public class ContextMenu(SceneEditor editor)
             {
                 if (ImGui.MenuItem("Dodaj wierzchołek na środku"))
                 {
-                    editor.InsertVertexAtEdgeMidpoint(edge.Polygon, edge.Edge);
+                    ctx.Editor.InsertVertexAtEdgeMidpoint(edge.Polygon, edge.Edge);
                 }
                 if (ImGui.MenuItem("Ustaw długość"))
                 {
                     _lengthInput = edge.Edge.Length;
                     _lengthRejected = false;
                     _openLengthPopup = true;
+                }
+                bool canPerpendicular = ctx.Selection.Edges.Count == 1 && ctx.Selection.Edges[0] != edge.Edge;
+                if (ImGui.MenuItem("Prostopadła do zaznaczonej", null, false, canPerpendicular))
+                {
+                    if (!ctx.Editor.AddPerpendicular(ctx.Selection.Edges[0], edge.Edge))
+                        ctx.Notification.Show("Nie można dodać prostopadłości");
+                }
+                var constraints = ctx.Scene.Constraints.Where(c => c.Edges.Contains(edge.Edge)).ToList();
+                if (constraints.Count > 0)
+                {
+                    ImGui.Separator();
+                }
+                var perpendiculars = ctx.Scene.Constraints.OfType<PerpendicularConstraint>().ToList();
+
+                string text = "";
+
+                for (int i = 0; i < constraints.Count; ++i)
+                {
+                    switch (constraints[i])
+                    {
+                        case LengthConstraint l:
+                            text = $"Usuń: długość {l.Length:0}##{i}";
+                            break;
+                        case PerpendicularConstraint perp:
+                            text = $"Usuń: prostopadłość x{perpendiculars.IndexOf(perp) + 1}##{i}";
+                            break;
+                        default:
+                            continue;
+                    }
+                    if (ImGui.MenuItem(text))
+                        ctx.Editor.RemoveConstraint(constraints[i]);
                 }
             }
             ImGui.EndPopup();
@@ -85,7 +117,7 @@ public class ContextMenu(SceneEditor editor)
             ImGui.BeginDisabled(!valid);
             if (ImGui.Button("OK") && edge != null)
             {
-                if (editor.SetLength(edge.Edge, _lengthInput))
+                if (ctx.Editor.SetLength(edge.Edge, _lengthInput))
                     ImGui.CloseCurrentPopup();
                 else
                     _lengthRejected = true;

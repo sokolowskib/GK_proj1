@@ -8,14 +8,14 @@ namespace PaintPP.App.Input;
 public class DraggingPolygonState(Polygon polygon, Vector2 startMouse) : IInteractionState
 {
     private Vector2 _lastMouse = startMouse;
-    public IInteractionState Update(Scene scene, Vector2 mouse, SceneEditor editor)
+    public IInteractionState Update(EditorContext ctx, Vector2 mouse)
     {
         if (Raylib.IsMouseButtonReleased(MouseButton.Left))
             return new IdleState();
 
         var delta = mouse - _lastMouse;
 
-        editor.TranslatePolygon(polygon, delta);
+        ctx.Editor.TranslatePolygon(polygon, delta);
         _lastMouse = mouse;
         return this;
     }

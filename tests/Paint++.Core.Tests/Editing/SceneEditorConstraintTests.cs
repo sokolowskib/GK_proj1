@@ -289,6 +289,168 @@ public class SceneEditorConstraintTests
             Assert.Equal(pos, p.Position);
     }
 
+    // ---------- MovePoint: wynik ----------
+
+    [Fact]
+    public void MovePoint_Solved_ReturnsTrue()
+    {
+        var (editor, _, square, builder) = CreateSquare();
+        builder.Length(square.Edges[0], 100);
+
+        Assert.True(editor.MovePoint(square, square.Vertices[1], new Vector2(150, 30)));
+    }
+
+    [Fact]
+    public void MovePoint_Fallback_ReturnsFalse()
+    {
+        var (editor, _, square, builder) = CreateSquare();
+        builder.Length(square.Edges[0], 100);
+        builder.Length(square.Edges[0], 50);
+
+        Assert.False(editor.MovePoint(square, square.Vertices[1], new Vector2(150, 30)));
+    }
+
+    // ---------- AddPerpendicular ----------
+
+    [Fact]
+    public void AddPerpendicular_SameEdge_Rejected()
+    {
+        var (editor, scene, square, _) = CreateSquare();
+
+        Assert.False(editor.AddPerpendicular(square.Edges[0], square.Edges[0]));
+        Assert.Empty(scene.Constraints);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]  // a.End == b.Start
+    [InlineData(1, 0)]  // a.Start == b.End
+    [InlineData(3, 0)]  // krawędź zamykająca i pierwsza (zawinięcie)
+    [InlineData(0, 3)]
+    public void AddPerpendicular_AdjacentEdges_Accepted(int i, int j)
+    {
+        // kąt prosty w wierzchołku jest dozwolony (decyzja 21.10)
+        var builder = new SceneBuilder();
+        var quad = builder.Polygon((0, 0), (100, 10), (130, 90), (20, 110));
+        var scene = builder.Build();
+        var editor = new SceneEditor(scene);
+
+        Assert.True(editor.AddPerpendicular(quad.Edges[i], quad.Edges[j]));
+        Assert.True(Assert.Single(scene.Constraints).IsSatisfied(Eps));
+    }
+
+    [Fact]
+    public void MovePoint_AdjacentPerpendicular_SharedVertexDragged_KeepsRightAngle()
+    {
+        var builder = new SceneBuilder();
+        var quad = builder.Polygon((0, 0), (100, 0), (100, 100), (0, 100));
+        var constraint = builder.Perpendicular(quad.Edges[0], quad.Edges[1]);
+        var editor = new SceneEditor(builder.Build());
+
+        bool solved = editor.MovePoint(quad, quad.Vertices[1], new Vector2(120, -20));
+
+        Assert.True(solved);
+        Assert.Equal(new Vector2(120, -20), quad.Vertices[1].Position);
+        Assert.True(constraint.IsSatisfied(Eps));
+    }
+
+    [Fact]
+    public void AddPerpendicular_OppositeEdgesOfSamePolygon_Accepted()
+    {
+        var (editor, scene, square, _) = CreateSquare();
+
+        bool added = editor.AddPerpendicular(square.Edges[0], square.Edges[2]);
+
+        Assert.True(added);
+        var constraint = Assert.Single(scene.Constraints);
+        Assert.True(constraint.IsSatisfied(Eps));
+    }
+
+    [Fact]
+    public void AddPerpendicular_CrossPolygon_AcceptedAndSatisfied()
+    {
+        var (editor, scene, square, builder) = CreateSquare();
+        var triangle = builder.Polygon((300, 0), (400, 30), (350, 100));
+
+        bool added = editor.AddPerpendicular(square.Edges[0], triangle.Edges[0]);
+
+        Assert.True(added);
+        Assert.True(Assert.Single(scene.Constraints).IsSatisfied(Eps));
+    }
+
+    [Fact]
+    public void AddPerpendicular_AlreadyPerpendicular_MovesNothing()
+    {
+        var (editor, scene, square, builder) = CreateSquare();
+        var other = builder.Polygon((300, 0), (300, 100), (400, 50));  // Edges[0] pionowa
+        var before = Positions(scene);
+
+        editor.AddPerpendicular(square.Edges[0], other.Edges[0]);
+
+        foreach (var (p, pos) in before)
+            Assert.Equal(pos, p.Position);
+    }
+
+    [Fact]
+    public void AddPerpendicular_Contradictory_RejectedAndRolledBack()
+    {
+        // e ⊥ f i e ⊥ g wymusza f ∥ g → dodanie f ⊥ g jest niemożliwe (na płaszczyźnie nie ma 3 wzajemnie prostopadłych kierunków)
+        var builder = new SceneBuilder();
+        var p1 = builder.Polygon((0, 0), (100, 0), (50, 80));
+        var p2 = builder.Polygon((200, 0), (300, 20), (250, 90));
+        var p3 = builder.Polygon((400, 0), (500, 40), (450, 100));
+        var e = p1.Edges[0];
+        var f = p2.Edges[0];
+        var g = p3.Edges[0];
+        builder.Perpendicular(e, f);
+        builder.Perpendicular(e, g);
+        var scene = builder.Build();
+        var editor = new SceneEditor(scene);
+        var before = Positions(scene);
+
+        bool added = editor.AddPerpendicular(f, g);
+
+        Assert.False(added);
+        Assert.Equal(2, scene.Constraints.Count);
+        foreach (var (p, pos) in before)
+            Assert.Equal(pos, p.Position);
+    }
+
+    [Fact]
+    public void AddPerpendicular_WithLengthOnSameEdge_BothSatisfied()
+    {
+        var (editor, scene, square, builder) = CreateSquare();
+        var triangle = builder.Polygon((300, 0), (400, 30), (350, 100));
+        var length = builder.Length(triangle.Edges[0], 80);
+
+        Assert.True(editor.AddPerpendicular(square.Edges[0], triangle.Edges[0]));
+        Assert.True(length.IsSatisfied(Eps));
+        Assert.True(scene.Constraints.OfType<PerpendicularConstraint>().Single().IsSatisfied(Eps));
+    }
+
+    [Fact]
+    public void Insert_OnPerpendicularEdge_RemovesConstraintFromBothEdges()
+    {
+        var (editor, scene, square, builder) = CreateSquare();
+        var triangle = builder.Polygon((300, 0), (400, 30), (350, 100));
+        builder.Perpendicular(square.Edges[0], triangle.Edges[0]);
+
+        editor.InsertVertexAtEdgeMidpoint(triangle, triangle.Edges[0]);
+
+        Assert.Empty(scene.Constraints);
+    }
+
+    [Fact]
+    public void Delete_VertexOfPerpendicularEdge_RemovesConstraint()
+    {
+        var (editor, scene, square, builder) = CreateSquare();
+        var other = builder.Polygon((300, 0), (400, 0), (400, 100), (300, 100));
+        builder.Perpendicular(square.Edges[0], other.Edges[1]);
+
+        editor.DeleteVertex(square, square.Vertices[1]);
+
+        Assert.Empty(scene.Constraints);
+    }
+
     // ---------- Insert/Delete usuwają ograniczenia podmienionych krawędzi ----------
 
     [Fact]

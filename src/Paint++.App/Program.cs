@@ -23,19 +23,23 @@ var scene = DemoScene.Create();
 var renderer = new SceneRenderer();
 IInteractionState state = new IdleState();
 var editor = new SceneEditor(scene);
-var contextMenu = new ContextMenu(editor);
+var selection = new Selection();
+var notification = new Notification();
+var ctx = new EditorContext(scene, editor, selection, notification);
+var contextMenu = new ContextMenu(ctx);
 
 while (!Raylib.WindowShouldClose())
 {
     Vector2 mouse = Raylib.GetMousePosition();
     bool mouseOnCanvas = !ImGui.GetIO().WantCaptureMouse;
     if (mouseOnCanvas)
-        state = state.Update(scene, mouse, editor);
+        state = state.Update(ctx, mouse);
 
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Color.RayWhite);
 
-    renderer.Draw(scene);
+    selection.RemoveMissing(scene);
+    renderer.Draw(scene, selection);
     Raylib.DrawCircleV(Raylib.GetMousePosition(), 5, Color.Red);
 
     rlImGui.Begin();
@@ -43,16 +47,17 @@ while (!Raylib.WindowShouldClose())
         contextMenu.Open(scene, mouse);
     contextMenu.Draw();
 
-    DrawSidePanel(renderer);
+    DrawSidePanel(renderer, ctx);
     rlImGui.End();
 
     Raylib.EndDrawing();
 }
 
+renderer.Unload();
 rlImGui.Shutdown();
 Raylib.CloseWindow();
 
-static void DrawSidePanel(SceneRenderer renderer)
+static void DrawSidePanel(SceneRenderer renderer, EditorContext ctx)
 {
     int screenWidth = Raylib.GetScreenWidth();
     int screenHeight = Raylib.GetScreenHeight();
@@ -72,6 +77,9 @@ static void DrawSidePanel(SceneRenderer renderer)
     bool isBresenham = renderer.Rasterizer is BresenhamLineRasterizer;
     if (ImGui.RadioButton("Bresenham", isBresenham))
         renderer.Rasterizer = new BresenhamLineRasterizer();
+
+    ImGui.Text($"Zaznaczone: {ctx.Selection.Edges.Count}");
+    ctx.Notification.Draw();
 
     ImGui.End();
 }
