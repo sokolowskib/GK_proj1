@@ -20,7 +20,7 @@ public class ContextMenu(EditorContext ctx)
     public void Open(Scene scene, Vector2 mouse)
     {
         var p = scene.HitTestPoint(mouse, Tolerance);
-        if (p != null)
+        if (p != null && p.Point is Vertex)
         {
             point = p;
             edge = null;
@@ -54,17 +54,33 @@ public class ContextMenu(EditorContext ctx)
         {
             if (edge != null)
             {
+                bool isBezier = edge.Edge.Shape is BezierShape;
                 if (ImGui.MenuItem("Dodaj wierzchołek na środku"))
                 {
                     ctx.Editor.InsertVertexAtEdgeMidpoint(edge.Polygon, edge.Edge);
                 }
-                if (ImGui.MenuItem("Ustaw długość"))
+                if (isBezier)
+                {
+                    if (ImGui.MenuItem("Zmień na odcinek"))
+                    {
+                        ctx.Editor.ConvertToLine(edge.Edge);
+                    }
+                }
+                else
+                {
+                    if (ImGui.MenuItem("Zmień na krzywą Beziera"))
+                    {
+                        ctx.Editor.ConvertToBezier(edge.Edge);
+                    }
+                }
+                if (ImGui.MenuItem("Ustaw długość", null, false, !isBezier))
                 {
                     _lengthInput = edge.Edge.Length;
                     _lengthRejected = false;
                     _openLengthPopup = true;
                 }
-                bool canPerpendicular = ctx.Selection.Edges.Count == 1 && ctx.Selection.Edges[0] != edge.Edge;
+                bool canPerpendicular = ctx.Selection.Edges.Count == 1 && ctx.Selection.Edges[0] != edge.Edge &&
+                                        edge.Edge.Shape is not BezierShape && ctx.Selection.Edges[0].Shape is LineShape;
                 if (ImGui.MenuItem("Prostopadła do zaznaczonej", null, false, canPerpendicular))
                 {
                     if (!ctx.Editor.AddPerpendicular(ctx.Selection.Edges[0], edge.Edge))

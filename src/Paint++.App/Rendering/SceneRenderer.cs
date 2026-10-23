@@ -4,6 +4,7 @@ using PaintPP.Core.Constraints;
 using PaintPP.App.UI;
 using System.Numerics;
 using ImGuiNET;
+using PaintPP.Core.Rasterization;
 namespace PaintPP.App.Rendering;
 
 public class SceneRenderer
@@ -11,6 +12,8 @@ public class SceneRenderer
     private const float VertexRadius = 5f;
     private const float LabelFontSize = 16f;
     private const float LabelGap = 6f;
+    private const int Dash = 6;
+    private const int Gap = 4;
 
     private static readonly Color EdgeColor = Color.DarkBlue;
     private static readonly Color SelectedEdgeColor = Color.Orange;
@@ -41,13 +44,18 @@ public class SceneRenderer
     {
         foreach (var edge in polygon.Edges)
         {
-            if (selection.Edges.Contains(edge))
+            var color = selection.Edges.Contains(edge) ? SelectedEdgeColor : EdgeColor;
+            switch (edge.Shape)
             {
-                Rasterizer.DrawLine(edge.Start.Position, edge.End.Position, SelectedEdgeColor);
-            }
-            else
-            {
-                Rasterizer.DrawLine(edge.Start.Position, edge.End.Position, EdgeColor);
+                case LineShape:
+                    Rasterizer.DrawLine(edge.Start.Position, edge.End.Position, color);
+                    break;
+                case BezierShape bezier:
+                    DrawBezier(edge, bezier, color);
+                    break;
+
+                default:
+                    throw new NotSupportedException();
             }
         }
         foreach (var v in polygon.Vertices)
@@ -55,6 +63,45 @@ public class SceneRenderer
             Raylib.DrawCircleV(v.Position, VertexRadius, VertexColor);
         }
     }
+    public void DrawBezier(Edge edge, BezierShape bezier, Color color)
+    {
+        var p0 = edge.Start.Position;
+        var p1 = bezier.C1.Position;
+        var p2 = bezier.C2.Position;
+        var p3 = edge.End.Position;
+
+        float len = Vector2.Distance(p0, p1) + Vector2.Distance(p1, p2) + Vector2.Distance(p2, p3);
+        int steps = Math.Max(8, (int)(len / 5));
+
+        DrawDashedLine(p0, p1, Color.Gray);
+        DrawDashedLine(p1, p2, Color.Gray);
+        DrawDashedLine(p2, p3, Color.Gray);
+
+        var sample = BezierCurve.Sample(p0, p1, p2, p3, steps).ToList();
+
+        for (int i = 0; i < sample.Count - 1; ++i)
+        {
+            Raylib.DrawLineV(sample[i], sample[i + 1], color);
+        }
+        Raylib.DrawCircleV(p1, VertexRadius, Color.DarkGreen);
+        Raylib.DrawCircleV(p2, VertexRadius, Color.DarkGreen);
+    }
+    public static void DrawDashedLine(Vector2 a, Vector2 b, Color color)
+    {
+        var length = Vector2.Distance(a, b);
+
+        if (length < 1e-5)
+            return;
+
+        var dir = (b - a) / length;
+        for (int s = 0; s < length; s += Dash + Gap)
+        {
+            var from = a + dir * s;
+            var to = a + dir * Math.Min(s + Dash, length);
+            Raylib.DrawLineV(from, to, color);
+        }
+    }
+
     public void DrawConstraintsIcon(Scene scene)
     {
         var perpendiculars = scene.Constraints.OfType<PerpendicularConstraint>().ToList();
@@ -101,7 +148,8 @@ public class SceneRenderer
                 {
                     float halfAlong = HalfExtent(size, dir);
                     float halfAcross = HalfExtent(size, normal);
-                    // środek napisu: odsunięty od linii o połowę napisu + odstęp, więc brzeg zawsze LabelGap od krawędzi
+                    // środek napisu: odsunięty od linii o połowę napisu + odstęp, więc brzeg zawsze LabelGap od
+                    // krawędzi
                     var center = e.Midpoint + normal * (halfAcross + LabelGap) + dir * (along + halfAlong);
                     Raylib.DrawTextEx(_font, text, center - size / 2f, LabelFontSize, 1f, color);
                     along += 2f * halfAlong + LabelGap;
