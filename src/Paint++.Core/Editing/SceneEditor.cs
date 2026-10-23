@@ -103,4 +103,20 @@ public class SceneEditor(Scene scene)
     {
         polygon.Translate(delta);
     }
+
+    public void ConvertToBezier(Edge edge)
+    {
+        RemoveConstraintsOf(edge);
+        var a = edge.Start.Position;
+        var b = edge.End.Position;
+        var d = b - a;
+        var t1 = a + d / 3f;
+        var t2 = a + 2 * d / 3f;
+        var shape = new BezierShape(new ScenePoint(t1), new ScenePoint(t2));
+        edge.Shape = shape;
+    }
+    public void ConvertToLine(Edge edge)
+    {
+        edge.Shape = new LineShape();
+    }
 }
