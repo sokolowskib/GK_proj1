@@ -47,6 +47,24 @@ public class ContextMenu(EditorContext ctx)
                 bool canDelete = point.Polygon.Vertices.Count > 3;
                 if (ImGui.MenuItem("Usuń wierzchołek", null, false, canDelete))
                     ctx.Editor.DeleteVertex(point.Polygon, vertex);
+                bool nearBezier = point.Polygon.IncomingEdge(vertex).Shape is BezierShape ||
+                                  point.Polygon.OutgoingEdge(vertex).Shape is BezierShape;
+                if (nearBezier)
+                {
+                    ImGui.Separator();
+                    if (ImGui.MenuItem("G0", null, vertex.Continuity == Continuity.G0))
+                    {
+                        ctx.Editor.SetContinuity(vertex, Continuity.G0);
+                    }
+                    if (ImGui.MenuItem("G1", null, vertex.Continuity == Continuity.G1))
+                    {
+                        ctx.Editor.SetContinuity(vertex, Continuity.G1);
+                    }
+                    if (ImGui.MenuItem("C1", null, vertex.Continuity == Continuity.C1))
+                    {
+                        ctx.Editor.SetContinuity(vertex, Continuity.C1);
+                    }
+                }
             }
             ImGui.EndPopup();
         }

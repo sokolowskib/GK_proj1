@@ -11,7 +11,9 @@ public class SceneEditor(Scene scene)
         RemoveConstraintsOf(edge);
         var mid = edge.Midpoint;
 
-        return polygon.InsertVertex(edge, mid);
+        var result = polygon.InsertVertex(edge, mid);
+        scene.RebuildContinuityConstraints();
+        return result;
     }
     public bool DeleteVertex(Polygon polygon, Vertex vertex)
     {
@@ -22,7 +24,16 @@ public class SceneEditor(Scene scene)
         RemoveConstraintsOf(e1);
         RemoveConstraintsOf(e2);
         polygon.RemoveVertex(vertex);
+        scene.RebuildContinuityConstraints();
         return true;
+    }
+
+    public void SetContinuity(Vertex vertex, Continuity kind)
+    {
+        vertex.Continuity = kind;
+        vertex.ContinuityExplicit = true;
+        scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
     }
 
     public bool MovePoint(Polygon polygon, ScenePoint point, Vector2 target)
@@ -92,6 +103,11 @@ public class SceneEditor(Scene scene)
     }
 
     private Dictionary<ScenePoint, Vector2> TakeSnapshot() => scene.AllPoints.ToDictionary(p => p, p => p.Position);
+    private void SolveWithVerticesPinned()
+    {
+        _solver.Solve(scene.Constraints, scene.AllPoints.OfType<Vertex>().ToHashSet<ScenePoint>());
+    }
+
     private static void RestoreSnapshot(Dictionary<ScenePoint, Vector2> dict)
     {
         foreach (var (p, pos) in dict)
@@ -114,9 +130,18 @@ public class SceneEditor(Scene scene)
         var t2 = a + 2 * d / 3f;
         var shape = new BezierShape(new ScenePoint(t1), new ScenePoint(t2));
         edge.Shape = shape;
+
+        if (!edge.Start.ContinuityExplicit)
+            edge.Start.Continuity = Continuity.C1;
+        if (!edge.End.ContinuityExplicit)
+            edge.End.Continuity = Continuity.C1;
+
+        scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
     }
     public void ConvertToLine(Edge edge)
     {
         edge.Shape = new LineShape();
+        scene.RebuildContinuityConstraints();
     }
 }

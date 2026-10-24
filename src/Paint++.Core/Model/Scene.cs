@@ -43,5 +43,23 @@ public class Scene
         }
         return best;
     }
+
+    public void RebuildContinuityConstraints()
+    {
+        Constraints.RemoveAll(c => c is ContinuityConstraint);
+        foreach (var p in Polygons)
+        {
+            foreach (var v in p.Vertices)
+            {
+                var incoming = p.IncomingEdge(v);
+                var outgoing = p.OutgoingEdge(v);
+
+                if (v.Continuity != Continuity.G0 && (incoming.Shape is BezierShape || outgoing.Shape is BezierShape))
+                {
+                    Constraints.Add(new ContinuityConstraint(v, incoming, outgoing, v.Continuity));
+                }
+            }
+        }
+    }
     public IEnumerable<ScenePoint> AllPoints => Polygons.SelectMany(p => p.AllPoints);
 }

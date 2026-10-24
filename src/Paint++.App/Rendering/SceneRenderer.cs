@@ -5,6 +5,7 @@ using PaintPP.App.UI;
 using System.Numerics;
 using ImGuiNET;
 using PaintPP.Core.Rasterization;
+using System.Reflection.Emit;
 namespace PaintPP.App.Rendering;
 
 public class SceneRenderer
@@ -61,6 +62,13 @@ public class SceneRenderer
         foreach (var v in polygon.Vertices)
         {
             Raylib.DrawCircleV(v.Position, VertexRadius, VertexColor);
+            var nearBezier =
+                polygon.IncomingEdge(v).Shape is BezierShape || polygon.OutgoingEdge(v).Shape is BezierShape;
+            if (v.Continuity != Continuity.G0)
+            {
+                Raylib.DrawTextEx(_font, v.Continuity.ToString(), v.Position + new Vector2(8, -20), LabelFontSize, 1f,
+                                  Color.DarkGreen);
+            }
         }
     }
     public void DrawBezier(Edge edge, BezierShape bezier, Color color)
