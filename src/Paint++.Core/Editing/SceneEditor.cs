@@ -162,7 +162,7 @@ public class SceneEditor(Scene scene)
         {
             if (outgoing.Shape is ArcShape && outgoing.End.Continuity == Continuity.G1)
                 return false;
-            if (incoming.Shape is ArcShape && incoming.End.Continuity == Continuity.G1)
+            if (incoming.Shape is ArcShape && incoming.Start.Continuity == Continuity.G1)
                 return false;
         }
         return true;
