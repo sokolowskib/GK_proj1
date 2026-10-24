@@ -41,3 +41,60 @@ public sealed class BezierShape(ScenePoint c1, ScenePoint c2) : EdgeShape
         return dist;
     }
 }
+
+public sealed class ArcShape : EdgeShape
+{
+    public ScenePoint? StartTangentSource { get; set; }
+    public ScenePoint? EndTangentSource { get; set; }
+    public Edge? StartTangentArc { get; set; }
+
+    public Vector2 DirectionAtEnd(Vector2 start, Vector2 end)
+    {
+        var points = Sample(start, end, 256);
+        return points[^1] - points[^2];
+    }
+
+    public IReadOnlyList<Vector2> Sample(Vector2 start, Vector2 end, int steps)
+    {
+        Arc? arc;
+        bool reversed = false;
+        if (StartTangentArc?.Shape is ArcShape previous)
+        {
+            var dir = previous.DirectionAtEnd(StartTangentArc.Start.Position, StartTangentArc.End.Position);
+            arc = ArcGeometry.FromTangent(start, end, dir);
+        }
+        else if (StartTangentSource != null)
+        {
+            arc = ArcGeometry.FromTangent(start, end, start - StartTangentSource.Position);
+        }
+        else if (EndTangentSource != null)
+        {
+            arc = ArcGeometry.FromTangent(end, start, end - EndTangentSource.Position);
+            reversed = true;
+        }
+        else
+        {
+            var d = end - start;
+            arc = ArcGeometry.FromTangent(start, end, new Vector2(d.Y, -d.X));
+        }
+        if (arc == null)
+            return [start, end];
+        var points = ArcGeometry.Sample(arc.Value, steps);
+        return reversed ? points.Reverse().ToList() : [..points];
+    }
+    public override float DistanceTo(Vector2 start, Vector2 end, Vector2 point)
+    {
+        var points = Sample(start, end, 64);
+        float dist = float.MaxValue;
+
+        for (int i = 0; i < points.Count - 1; ++i)
+        {
+            var temp = Geometry2D.DistanceToSegment(point, points[i], points[i + 1]);
+            if (temp < dist)
+            {
+                dist = temp;
+            }
+        }
+        return dist;
+    }
+}

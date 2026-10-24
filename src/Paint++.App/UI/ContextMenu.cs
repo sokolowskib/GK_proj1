@@ -47,22 +47,16 @@ public class ContextMenu(EditorContext ctx)
                 bool canDelete = point.Polygon.Vertices.Count > 3;
                 if (ImGui.MenuItem("Usuń wierzchołek", null, false, canDelete))
                     ctx.Editor.DeleteVertex(point.Polygon, vertex);
-                bool nearBezier = point.Polygon.IncomingEdge(vertex).Shape is BezierShape ||
-                                  point.Polygon.OutgoingEdge(vertex).Shape is BezierShape;
-                if (nearBezier)
+                bool nearCurve = point.Polygon.IncomingEdge(vertex).Shape is not LineShape ||
+                                 point.Polygon.OutgoingEdge(vertex).Shape is not LineShape;
+                if (nearCurve)
                 {
                     ImGui.Separator();
-                    if (ImGui.MenuItem("G0", null, vertex.Continuity == Continuity.G0))
+                    foreach (var kind in Enum.GetValues<Continuity>())
                     {
-                        ctx.Editor.SetContinuity(vertex, Continuity.G0);
-                    }
-                    if (ImGui.MenuItem("G1", null, vertex.Continuity == Continuity.G1))
-                    {
-                        ctx.Editor.SetContinuity(vertex, Continuity.G1);
-                    }
-                    if (ImGui.MenuItem("C1", null, vertex.Continuity == Continuity.C1))
-                    {
-                        ctx.Editor.SetContinuity(vertex, Continuity.C1);
+                        bool allowed = ctx.Editor.CanSetContinuity(vertex, kind);
+                        if (ImGui.MenuItem(kind.ToString(), null, vertex.Continuity == kind, allowed))
+                            ctx.Editor.SetContinuity(vertex, kind);
                     }
                 }
             }
@@ -72,33 +66,27 @@ public class ContextMenu(EditorContext ctx)
         {
             if (edge != null)
             {
-                bool isBezier = edge.Edge.Shape is BezierShape;
+                bool isLine = edge.Edge.Shape is LineShape;
                 if (ImGui.MenuItem("Dodaj wierzchołek na środku"))
                 {
                     ctx.Editor.InsertVertexAtEdgeMidpoint(edge.Polygon, edge.Edge);
                 }
-                if (isBezier)
-                {
-                    if (ImGui.MenuItem("Zmień na odcinek"))
-                    {
-                        ctx.Editor.ConvertToLine(edge.Edge);
-                    }
-                }
-                else
-                {
-                    if (ImGui.MenuItem("Zmień na krzywą Beziera"))
-                    {
-                        ctx.Editor.ConvertToBezier(edge.Edge);
-                    }
-                }
-                if (ImGui.MenuItem("Ustaw długość", null, false, !isBezier))
+
+                if (edge.Edge.Shape is not LineShape && ImGui.MenuItem("Zmień na odcinek"))
+                    ctx.Editor.ConvertToLine(edge.Edge);
+                if (edge.Edge.Shape is not BezierShape && ImGui.MenuItem("Zmień na krzywą Béziera"))
+                    ctx.Editor.ConvertToBezier(edge.Edge);
+                if (edge.Edge.Shape is not ArcShape && ImGui.MenuItem("Zmień na łuk"))
+                    ctx.Editor.ConvertToArc(edge.Edge);
+
+                if (ImGui.MenuItem("Ustaw długość", null, false, isLine))
                 {
                     _lengthInput = edge.Edge.Length;
                     _lengthRejected = false;
                     _openLengthPopup = true;
                 }
                 bool canPerpendicular = ctx.Selection.Edges.Count == 1 && ctx.Selection.Edges[0] != edge.Edge &&
-                                        edge.Edge.Shape is not BezierShape && ctx.Selection.Edges[0].Shape is LineShape;
+                                        isLine && ctx.Selection.Edges[0].Shape is LineShape;
                 if (ImGui.MenuItem("Prostopadła do zaznaczonej", null, false, canPerpendicular))
                 {
                     if (!ctx.Editor.AddPerpendicular(ctx.Selection.Edges[0], edge.Edge))

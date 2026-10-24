@@ -46,6 +46,12 @@ public class Scene
 
     public void RebuildContinuityConstraints()
     {
+        RebuildBezierContinuity();
+        RebuildArcTangents();
+    }
+
+    private void RebuildBezierContinuity()
+    {
         Constraints.RemoveAll(c => c is ContinuityConstraint);
         foreach (var p in Polygons)
         {
@@ -54,12 +60,60 @@ public class Scene
                 var incoming = p.IncomingEdge(v);
                 var outgoing = p.OutgoingEdge(v);
 
-                if (v.Continuity != Continuity.G0 && (incoming.Shape is BezierShape || outgoing.Shape is BezierShape))
-                {
+                if (v.Continuity == Continuity.G0)  // nie ma co pilnowac
+                    continue;
+                if (incoming.Shape is ArcShape ||
+                    outgoing.Shape is
+                        ArcShape)  // jesli ktores z krawedzi to luk to ten luk ma pilnowac ciaglosci w punkcie
+                    continue;
+                if (incoming.Shape is BezierShape || outgoing.Shape is BezierShape)
                     Constraints.Add(new ContinuityConstraint(v, incoming, outgoing, v.Continuity));
+            }
+        }
+    }
+    private void RebuildArcTangents()
+    {
+        foreach (var p in Polygons)
+        {
+            foreach (var e in p.Edges)
+            {
+                if (e.Shape is not ArcShape arc)
+                    continue;
+                var previous = p.IncomingEdge(e.Start);
+                var next = p.OutgoingEdge(e.End);
+                arc.StartTangentSource = null;
+                arc.StartTangentArc = null;
+
+                if (e.Start.Continuity == Continuity.G1)
+                {
+                    if (previous.Shape is ArcShape)
+                    {
+                        arc.StartTangentArc = previous;
+                    }
+                    else if (previous.Shape is BezierShape bs)
+                    {
+                        arc.StartTangentSource = bs.C2;
+                    }
+                    else
+                    {
+                        arc.StartTangentSource = previous.Start;
+                    }
+                }
+                arc.EndTangentSource = null;
+                if (e.End.Continuity == Continuity.G1 && next.Shape is not ArcShape)
+                {
+                    if (next.Shape is BezierShape bs)
+                    {
+                        arc.EndTangentSource = bs.C1;
+                    }
+                    else
+                    {
+                        arc.EndTangentSource = next.End;
+                    }
                 }
             }
         }
     }
+
     public IEnumerable<ScenePoint> AllPoints => Polygons.SelectMany(p => p.AllPoints);
 }

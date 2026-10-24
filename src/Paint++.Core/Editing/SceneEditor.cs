@@ -28,14 +28,6 @@ public class SceneEditor(Scene scene)
         return true;
     }
 
-    public void SetContinuity(Vertex vertex, Continuity kind)
-    {
-        vertex.Continuity = kind;
-        vertex.ContinuityExplicit = true;
-        scene.RebuildContinuityConstraints();
-        SolveWithVerticesPinned();
-    }
-
     public bool MovePoint(Polygon polygon, ScenePoint point, Vector2 target)
     {
         var snapshot = TakeSnapshot();
@@ -131,17 +123,76 @@ public class SceneEditor(Scene scene)
         var shape = new BezierShape(new ScenePoint(t1), new ScenePoint(t2));
         edge.Shape = shape;
 
-        if (!edge.Start.ContinuityExplicit)
+        if (!edge.Start.ContinuityExplicit &&
+            PolygonOf(edge.Start)
+                .IncomingEdge(edge.Start)
+                .Shape is not ArcShape)  // nie istnieje jesli po drugiej stronie wierzcholka jest luk
             edge.Start.Continuity = Continuity.C1;
-        if (!edge.End.ContinuityExplicit)
+        if (!edge.End.ContinuityExplicit && PolygonOf(edge.End).OutgoingEdge(edge.End).Shape is not ArcShape)
             edge.End.Continuity = Continuity.C1;
 
         scene.RebuildContinuityConstraints();
         SolveWithVerticesPinned();
     }
+
+    public bool SetContinuity(Vertex vertex, Continuity kind)
+    {
+        if (!CanSetContinuity(vertex, kind))
+            return false;
+
+        vertex.Continuity = kind;
+        vertex.ContinuityExplicit = true;
+        scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
+        return true;
+    }
+    public bool CanSetContinuity(Vertex vertex, Continuity kind)
+    {
+        var polygon = PolygonOf(vertex);
+        var incoming = polygon.IncomingEdge(vertex);
+        var outgoing = polygon.OutgoingEdge(vertex);
+
+        if (kind == Continuity.G0)
+            return true;
+
+        if (kind == Continuity.C1 && (incoming.Shape is ArcShape || outgoing.Shape is ArcShape))
+            return false;
+
+        if (kind == Continuity.G1)
+        {
+            if (outgoing.Shape is ArcShape && outgoing.End.Continuity == Continuity.G1)
+                return false;
+            if (incoming.Shape is ArcShape && incoming.End.Continuity == Continuity.G1)
+                return false;
+        }
+        return true;
+    }
+    private Polygon PolygonOf(Vertex vertex) => scene.Polygons.First(p => p.Vertices.Contains(vertex));
     public void ConvertToLine(Edge edge)
     {
         edge.Shape = new LineShape();
         scene.RebuildContinuityConstraints();
+    }
+
+    public void ConvertToArc(Edge edge)
+    {
+        RemoveConstraintsOf(edge);
+        edge.Shape = new ArcShape();
+
+        if (edge.Start.Continuity == Continuity.C1)
+        {
+            edge.Start.Continuity = Continuity.G0;
+        }
+        if (edge.End.Continuity == Continuity.C1)
+        {
+            edge.End.Continuity = Continuity.G0;
+        }
+
+        if (edge.End.Continuity == Continuity.G1 && !CanSetContinuity(edge.End, Continuity.G1))
+            edge.End.Continuity = Continuity.G0;
+        if (edge.Start.Continuity == Continuity.G1 && !CanSetContinuity(edge.Start, Continuity.G1))
+            edge.Start.Continuity = Continuity.G0;
+        scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
     }
 }

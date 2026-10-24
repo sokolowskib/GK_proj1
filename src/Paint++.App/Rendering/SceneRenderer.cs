@@ -54,6 +54,9 @@ public class SceneRenderer
                 case BezierShape bezier:
                     DrawBezier(edge, bezier, color);
                     break;
+                case ArcShape arc:
+                    DrawArc(edge, arc, color);
+                    break;
 
                 default:
                     throw new NotSupportedException();
@@ -62,9 +65,9 @@ public class SceneRenderer
         foreach (var v in polygon.Vertices)
         {
             Raylib.DrawCircleV(v.Position, VertexRadius, VertexColor);
-            var nearBezier =
-                polygon.IncomingEdge(v).Shape is BezierShape || polygon.OutgoingEdge(v).Shape is BezierShape;
-            if (v.Continuity != Continuity.G0)
+            var nearCurve =
+                polygon.IncomingEdge(v).Shape is not LineShape || polygon.OutgoingEdge(v).Shape is not LineShape;
+            if (nearCurve && v.Continuity != Continuity.G0)
             {
                 Raylib.DrawTextEx(_font, v.Continuity.ToString(), v.Position + new Vector2(8, -20), LabelFontSize, 1f,
                                   Color.DarkGreen);
@@ -93,6 +96,17 @@ public class SceneRenderer
         }
         Raylib.DrawCircleV(p1, VertexRadius, Color.DarkGreen);
         Raylib.DrawCircleV(p2, VertexRadius, Color.DarkGreen);
+    }
+    public static void DrawArc(Edge edge, ArcShape arc, Color color)
+    {
+        var start = edge.Start.Position;
+        var end = edge.End.Position;
+        int steps = Math.Max(16, (int)Vector2.Distance(start, end) / 3);
+        var points = arc.Sample(start, end, steps);
+        for (int i = 0; i < points.Count - 1; ++i)
+        {
+            Raylib.DrawLineV(points[i], points[i + 1], color);
+        }
     }
     public static void DrawDashedLine(Vector2 a, Vector2 b, Color color)
     {
