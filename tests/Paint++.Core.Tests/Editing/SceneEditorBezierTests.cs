@@ -12,6 +12,9 @@ public class SceneEditorBezierTests
     {
         var builder = new SceneBuilder();
         var square = builder.Polygon((0, 0), (90, 0), (90, 90), (0, 90));
+        // jawne G0 — te testy sprawdzają samą mechanikę Béziera, bez domyślnego C1 (to: ContinuityTests)
+        foreach (var v in square.Vertices)
+            v.ContinuityExplicit = true;
         var scene = builder.Build();
         return (new SceneEditor(scene), scene, square, builder);
     }
