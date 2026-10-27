@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Paint++.Core\Paint++.Core.csproj" />
+    <ProjectReference Include="..\..\src\Paint++.App\Paint++.App.csproj" />
   </ItemGroup>
 
 </Project>

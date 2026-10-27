@@ -13,6 +13,7 @@ public class SceneEditor(Scene scene)
 
         var result = polygon.InsertVertex(edge, mid);
         scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
         return result;
     }
     public bool DeleteVertex(Polygon polygon, Vertex vertex)
@@ -25,6 +26,7 @@ public class SceneEditor(Scene scene)
         RemoveConstraintsOf(e2);
         polygon.RemoveVertex(vertex);
         scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
         return true;
     }
 
@@ -93,6 +95,8 @@ public class SceneEditor(Scene scene)
 
         return AddConstraint(new PerpendicularConstraint(a, b));
     }
+
+    public bool SolveAll() => _solver.Solve(scene.Constraints, new HashSet<ScenePoint>());
 
     private Dictionary<ScenePoint, Vector2> TakeSnapshot() => scene.AllPoints.ToDictionary(p => p, p => p.Position);
     private void SolveWithVerticesPinned()

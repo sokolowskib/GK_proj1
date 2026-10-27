@@ -397,7 +397,7 @@ public class SceneEditorConstraintTests
         var builder = new SceneBuilder();
         var p1 = builder.Polygon((0, 0), (100, 0), (50, 80));
         var p2 = builder.Polygon((200, 0), (300, 20), (250, 90));
-        var p3 = builder.Polygon((400, 0), (500, 40), (450, 100));
+        var p3 = builder.Polygon((400, 0), (500, 20), (450, 100));
         var e = p1.Edges[0];
         var f = p2.Edges[0];
         var g = p3.Edges[0];

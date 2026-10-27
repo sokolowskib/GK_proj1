@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <None Include="Assets\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="..\..\README.md" LogicalName="README.md" />
   </ItemGroup>
 
 </Project>

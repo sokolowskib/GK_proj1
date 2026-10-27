@@ -45,11 +45,14 @@ public class ContextMenu(EditorContext ctx)
             if (point?.Point is Vertex vertex)
             {
                 bool canDelete = point.Polygon.Vertices.Count > 3;
-                if (ImGui.MenuItem("Usuń wierzchołek", null, false, canDelete))
-                    ctx.Editor.DeleteVertex(point.Polygon, vertex);
                 bool nearCurve = point.Polygon.IncomingEdge(vertex).Shape is not LineShape ||
                                  point.Polygon.OutgoingEdge(vertex).Shape is not LineShape;
-                if (nearCurve)
+                if (ImGui.MenuItem("Usuń wierzchołek", null, false, canDelete))
+                {
+                    ctx.Editor.DeleteVertex(point.Polygon, vertex);
+                    point = null;  // wierzchołka już nie ma w wielokącie, reszta menu nie może go dotykać
+                }
+                else if (nearCurve)
                 {
                     ImGui.Separator();
                     foreach (var kind in Enum.GetValues<Continuity>())

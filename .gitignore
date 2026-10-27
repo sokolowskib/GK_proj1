@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 
 # ImGui window layout, regenerated at runtime
 imgui.ini
+
+# Zrzuty ekranu (macOS)
+Screenshot *.png

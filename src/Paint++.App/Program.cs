@@ -27,6 +27,7 @@ var selection = new Selection();
 var notification = new Notification();
 var ctx = new EditorContext(scene, editor, selection, notification);
 var contextMenu = new ContextMenu(ctx);
+var helpWindow = new HelpWindow();
 
 while (!Raylib.WindowShouldClose())
 {
@@ -47,7 +48,8 @@ while (!Raylib.WindowShouldClose())
         contextMenu.Open(scene, mouse);
     contextMenu.Draw();
 
-    DrawSidePanel(renderer, ctx);
+    DrawSidePanel(renderer, ctx, helpWindow);
+    helpWindow.Draw();
     rlImGui.End();
 
     Raylib.EndDrawing();
@@ -57,7 +59,7 @@ renderer.Unload();
 rlImGui.Shutdown();
 Raylib.CloseWindow();
 
-static void DrawSidePanel(SceneRenderer renderer, EditorContext ctx)
+static void DrawSidePanel(SceneRenderer renderer, EditorContext ctx, HelpWindow helpWindow)
 {
     int screenWidth = Raylib.GetScreenWidth();
     int screenHeight = Raylib.GetScreenHeight();
@@ -69,6 +71,8 @@ static void DrawSidePanel(SceneRenderer renderer, EditorContext ctx)
     Vector2 mouse = Raylib.GetMousePosition();
     ImGui.Text($"FPS: {Raylib.GetFPS()}");
     ImGui.Text($"Mysz: ({mouse.X:0}, {mouse.Y:0})");
+    if (ImGui.Button("Pomoc (F1)"))
+        helpWindow.Toggle();
 
     ImGui.SeparatorText("Rysowanie odcinków");
     bool isLibrary = renderer.Rasterizer is LibraryLineRasterizer;
@@ -84,10 +88,11 @@ static void DrawSidePanel(SceneRenderer renderer, EditorContext ctx)
     ImGui.End();
 }
 
-// Domyślna czcionka ImGui ma tylko ASCII — ładujemy TTF z zakresem obejmującym polskie litery (Latin Extended-A).
+// Domyślna czcionka ImGui ma tylko ASCII — ładujemy TTF z zakresem obejmującym polskie litery (Latin Extended-A),
+// greckie litery (ε w dokumentacji) i interpunkcję typograficzną (półpauza, cudzysłowy „”).
 static void LoadFont(string fileName, float size)
 {
-    ushort[] glyphRanges = [0x0020, 0x017F, 0];
+    ushort[] glyphRanges = [0x0020, 0x017F, 0x0370, 0x03FF, 0x2000, 0x206F, 0];
     // ImGui (C++) trzyma wskaźnik do tej tablicy, więc przypinamy ją na cały czas działania programu.
     var handle = GCHandle.Alloc(glyphRanges, GCHandleType.Pinned);
     string path = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", fileName);
