@@ -22,7 +22,7 @@ public class SceneRenderer
     private static readonly Color VertexColor = Color.Red;
 
     private static readonly Color[] BSplineColors =
-        [new Color(26, 188, 156, 255), new Color(52, 152, 219, 255), new Color(230, 126, 34, 255)];
+        [new Color(255, 0, 0, 255), new Color(0, 200, 0, 255), new Color(255, 200, 0, 255)];
 
     private static readonly Color BSplineHelperColor = Color.DarkPurple;
     private const float BSplineHelperRadius = 3f;
