@@ -178,6 +178,27 @@ public class SceneEditor(Scene scene)
         scene.RebuildContinuityConstraints();
     }
 
+    // Usunięta krawędź przestaje być rysowana i staje się zwykłym odcinkiem - po przywróceniu wraca jako odcinek,
+    // niezależnie czy wcześniej była Bézierem czy łukiem.
+    public bool RemoveEdge(Polygon polygon, Edge edge)
+    {
+        if (polygon.RemovedEdge != null)
+            return false;
+        RemoveConstraintsOf(edge);
+        edge.Shape = new LineShape();
+        polygon.RemoveEdge(edge);
+        scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
+        return true;
+    }
+
+    public void RestoreEdge(Polygon polygon)
+    {
+        polygon.RestoreEdge();
+        scene.RebuildContinuityConstraints();
+        SolveWithVerticesPinned();
+    }
+
     public void ConvertToArc(Edge edge)
     {
         RemoveConstraintsOf(edge);

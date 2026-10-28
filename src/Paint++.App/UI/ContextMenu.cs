@@ -67,9 +67,24 @@ public class ContextMenu(EditorContext ctx)
         }
         if (ImGui.BeginPopup(EdgeMenu))
         {
-            if (edge != null)
+            if (edge != null && edge.Edge == edge.Polygon.RemovedEdge)
+            {
+                if (ImGui.MenuItem("Przywróć krawędź"))
+                    ctx.Editor.RestoreEdge(edge.Polygon);
+                if (ImGui.MenuItem("Krzywa B-spline", null, edge.Polygon.ShowBSpline))
+                    edge.Polygon.ShowBSpline = !edge.Polygon.ShowBSpline;
+            }
+            else if (edge != null)
             {
                 bool isLine = edge.Edge.Shape is LineShape;
+                if (ImGui.MenuItem("Usuń krawędź", null, false, edge.Polygon.RemovedEdge == null))
+                    ctx.Editor.RemoveEdge(edge.Polygon, edge.Edge);
+                if (edge.Polygon.RemovedEdge != null && ImGui.MenuItem("Przywróć usuniętą krawędź"))
+                    ctx.Editor.RestoreEdge(edge.Polygon);
+                if (ImGui.MenuItem("Krzywa B-spline", null, edge.Polygon.ShowBSpline))
+                    edge.Polygon.ShowBSpline = !edge.Polygon.ShowBSpline;
+                ImGui.Separator();
+
                 if (ImGui.MenuItem("Dodaj wierzchołek na środku"))
                 {
                     ctx.Editor.InsertVertexAtEdgeMidpoint(edge.Polygon, edge.Edge);

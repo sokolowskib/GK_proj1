@@ -82,6 +82,18 @@ static void DrawSidePanel(SceneRenderer renderer, EditorContext ctx, HelpWindow 
     if (ImGui.RadioButton("Bresenham", isBresenham))
         renderer.Rasterizer = new BresenhamLineRasterizer();
 
+    ImGui.SeparatorText("B-spline");
+    // zaznaczony = wszystkie wielokąty mają B-spline; kliknięcie przy stanie mieszanym włącza wszystkim
+    bool allBSpline = ctx.Scene.Polygons.Count > 0 && ctx.Scene.Polygons.All(p => p.ShowBSpline);
+    if (ImGui.Checkbox("B-spline we wszystkich", ref allBSpline))
+    {
+        foreach (var p in ctx.Scene.Polygons)
+            p.ShowBSpline = allBSpline;
+    }
+    bool helpers = renderer.ShowBSplineHelpers;
+    if (ImGui.Checkbox("Punkty pomocnicze Béziera", ref helpers))
+        renderer.ShowBSplineHelpers = helpers;
+
     ImGui.Text($"Zaznaczone: {ctx.Selection.Edges.Count}");
     ctx.Notification.Draw();
 

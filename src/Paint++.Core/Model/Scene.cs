@@ -62,6 +62,8 @@ public class Scene
 
                 if (v.Continuity == Continuity.G0)  // nie ma co pilnowac
                     continue;
+                if (incoming == p.RemovedEdge || outgoing == p.RemovedEdge)  // z niewidoczna krawedzia nie ma ciaglosci
+                    continue;
                 if (incoming.Shape is ArcShape ||
                     outgoing.Shape is
                         ArcShape)  // jesli ktores z krawedzi to luk to ten luk ma pilnowac ciaglosci w punkcie
@@ -84,7 +86,7 @@ public class Scene
                 arc.StartTangentSource = null;
                 arc.StartTangentArc = null;
 
-                if (e.Start.Continuity == Continuity.G1)
+                if (e.Start.Continuity == Continuity.G1 && previous != p.RemovedEdge)
                 {
                     if (previous.Shape is ArcShape)
                     {
@@ -100,7 +102,7 @@ public class Scene
                     }
                 }
                 arc.EndTangentSource = null;
-                if (e.End.Continuity == Continuity.G1 && next.Shape is not ArcShape)
+                if (e.End.Continuity == Continuity.G1 && next.Shape is not ArcShape && next != p.RemovedEdge)
                 {
                     if (next.Shape is BezierShape bs)
                     {

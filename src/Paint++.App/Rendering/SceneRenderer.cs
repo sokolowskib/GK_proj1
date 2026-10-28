@@ -5,6 +5,7 @@ using PaintPP.App.UI;
 using System.Numerics;
 using ImGuiNET;
 using PaintPP.Core.Rasterization;
+using PaintPP.Core.Geometry;
 using System.Reflection.Emit;
 namespace PaintPP.App.Rendering;
 
@@ -19,7 +20,15 @@ public class SceneRenderer
     private static readonly Color EdgeColor = Color.DarkBlue;
     private static readonly Color SelectedEdgeColor = Color.Orange;
     private static readonly Color VertexColor = Color.Red;
+    // stonowane kolory segmentów B-spline, zmieniane cyklicznie: turkus, niebieski, pomarańcz
+    private static readonly Color[] BSplineColors =
+        [new Color(26, 188, 156, 255), new Color(52, 152, 219, 255), new Color(230, 126, 34, 255)];
+    // inny kolor niż uchwyty zwykłego Béziera (DarkGreen), żeby było widać, że to punkty wyliczone z B-spline
+    private static readonly Color BSplineHelperColor = Color.DarkPurple;
+    private const float BSplineHelperRadius = 3f;
     public ILineRasterizer Rasterizer { get; set; } = new LibraryLineRasterizer();
+    // punkty kontrolne segmentów Béziera wyznaczonych z B-spline (P0..P3) i przerywane P0-P1, P2-P3
+    public bool ShowBSplineHelpers { get; set; }
 
     private readonly Font _font;
 
@@ -45,6 +54,8 @@ public class SceneRenderer
     {
         foreach (var edge in polygon.Edges)
         {
+            if (edge == polygon.RemovedEdge)
+                continue;
             var color = selection.Edges.Contains(edge) ? SelectedEdgeColor : EdgeColor;
             switch (edge.Shape)
             {
@@ -62,6 +73,8 @@ public class SceneRenderer
                     throw new NotSupportedException();
             }
         }
+        if (polygon.ShowBSpline)
+            DrawBSpline(polygon);
         foreach (var v in polygon.Vertices)
         {
             Raylib.DrawCircleV(v.Position, VertexRadius, VertexColor);
@@ -96,6 +109,41 @@ public class SceneRenderer
         }
         Raylib.DrawCircleV(p1, VertexRadius, Color.DarkGreen);
         Raylib.DrawCircleV(p2, VertexRadius, Color.DarkGreen);
+    }
+    // Rysuje segmenty Béziera z konstrukcji B-spline, każdy segment w kolejnym kolorze z BSplineColors.
+    public void DrawBSpline(Polygon polygon)
+    {
+        bool closed = polygon.RemovedEdge == null;
+        var segments = BSpline.ToBezier(polygon.BSplinePoints(), closed);
+        for (int k = 0; k < segments.Count; ++k)
+        {
+            var s = segments[k];
+            if (ShowBSplineHelpers)
+            {
+                DrawDashedLine(s.P0, s.P1, Color.Gray);
+                DrawDashedLine(s.P1, s.P2, Color.Gray);
+                DrawDashedLine(s.P2, s.P3, Color.Gray);
+            }
+            int colorIndex = k % BSplineColors.Length;
+            // w zamkniętej krzywej ostatni segment sąsiaduje z pierwszym - nie mogą mieć tego samego koloru
+            if (closed && k > 0 && k == segments.Count - 1 && colorIndex == 0)
+                colorIndex = 1;
+
+            float len = Vector2.Distance(s.P0, s.P1) + Vector2.Distance(s.P1, s.P2) + Vector2.Distance(s.P2, s.P3);
+            var sample = BezierCurve.Sample(s.P0, s.P1, s.P2, s.P3, Math.Max(8, (int)(len / 5))).ToList();
+            for (int i = 0; i < sample.Count - 1; ++i)
+            {
+                Raylib.DrawLineV(sample[i], sample[i + 1], BSplineColors[colorIndex]);
+            }
+        }
+        if (!ShowBSplineHelpers)
+            return;
+        // punkty na końcu, żeby krzywa ich nie przykrywała
+        foreach (var s in segments)
+        {
+            foreach (var p in (Vector2[])[s.P0, s.P1, s.P2, s.P3])
+                Raylib.DrawCircleV(p, BSplineHelperRadius, BSplineHelperColor);
+        }
     }
     public static void DrawArc(Edge edge, ArcShape arc, Color color)
     {
