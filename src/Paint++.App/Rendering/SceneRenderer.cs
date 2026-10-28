@@ -20,14 +20,14 @@ public class SceneRenderer
     private static readonly Color EdgeColor = Color.DarkBlue;
     private static readonly Color SelectedEdgeColor = Color.Orange;
     private static readonly Color VertexColor = Color.Red;
-    // stonowane kolory segmentów B-spline, zmieniane cyklicznie: turkus, niebieski, pomarańcz
+
     private static readonly Color[] BSplineColors =
         [new Color(26, 188, 156, 255), new Color(52, 152, 219, 255), new Color(230, 126, 34, 255)];
-    // inny kolor niż uchwyty zwykłego Béziera (DarkGreen), żeby było widać, że to punkty wyliczone z B-spline
+
     private static readonly Color BSplineHelperColor = Color.DarkPurple;
     private const float BSplineHelperRadius = 3f;
     public ILineRasterizer Rasterizer { get; set; } = new LibraryLineRasterizer();
-    // punkty kontrolne segmentów Béziera wyznaczonych z B-spline (P0..P3) i przerywane P0-P1, P2-P3
+
     public bool ShowBSplineHelpers { get; set; }
 
     private readonly Font _font;
@@ -110,7 +110,6 @@ public class SceneRenderer
         Raylib.DrawCircleV(p1, VertexRadius, Color.DarkGreen);
         Raylib.DrawCircleV(p2, VertexRadius, Color.DarkGreen);
     }
-    // Rysuje segmenty Béziera z konstrukcji B-spline, każdy segment w kolejnym kolorze z BSplineColors.
     public void DrawBSpline(Polygon polygon)
     {
         bool closed = polygon.RemovedEdge == null;
